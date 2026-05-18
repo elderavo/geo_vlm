@@ -82,15 +82,66 @@ Implemented:
 
 - project and stage scaffolding,
 - TorchGeo-based SpaceNet preparation entrypoint,
+- direct `PS-RGB` GeoTIFF JEPA pretraining path,
+- configurable JEPA input channels for later non-RGB experiments,
+- submitit launcher for Slurm JEPA runs,
 - deterministic GeoSPARQL exporter,
 - staged shell workflow.
 
 Still to implement:
 
-- JEPA model and training loop,
 - supervised road decoder training loop,
 - raster-to-vector road post-processing,
 - evaluation and experiment tracking.
+
+## Geospatial JEPA baseline
+
+The first geospatial pretraining milestone is intentionally conservative:
+
+- imagery source: raw SpaceNet 3 Khartoum `PS-RGB` GeoTIFFs,
+- model input: three channels,
+- goal: prove that the vanilla JEPA recipe trains on satellite imagery before adding extra spectral products.
+
+This is a **geospatial transfer baseline**, not yet a multiband experiment.
+
+The current `configs/jepa.yaml` expects TIFFs under:
+
+```text
+~/AOI_5_Khartoum
+```
+
+and discovers files matching:
+
+```text
+*_PS-RGB_*.tif
+```
+
+Before training, the pipeline writes a `dataset_manifest.json` with representative TIFF metadata such as channel count, dtype, dimensions, CRS, and value ranges.
+
+Run locally:
+
+```bash
+uv run python -m geo_vlm.training.pretrain_jepa \
+  --config configs/jepa.yaml
+```
+
+Submit through Slurm with `submitit`:
+
+```bash
+uv run python -m geo_vlm.training.launch_jepa_submitit \
+  --config configs/jepa.yaml \
+  --folder ~/ijepa_logs \
+  --partition YOUR_PARTITION \
+  --nodes 1 \
+  --tasks-per-node 1 \
+  --time 30
+```
+
+Roadmap for additional imagery products:
+
+1. `PS-RGB` control run,
+2. explicit support for PAN / multispectral input channels,
+3. controlled comparisons so additional bands earn their complexity.
 
 ## Environment setup
 

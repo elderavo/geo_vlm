@@ -22,7 +22,6 @@ source "${SCRIPT_DIR}/_common.sh"
 
 log "Starting JEPA pretraining"
 uv run python -m geo_vlm.training.pretrain_jepa \
-  --data-root "${SPACENET3_ROOT}" \
   --config "${CONFIG_ROOT}/jepa.yaml" \
   --output-dir "${JEPA_RUN_DIR}"
 

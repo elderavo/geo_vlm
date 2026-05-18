@@ -13,6 +13,7 @@ Examples:
 ```text
 assran-2023-jepa.pdf
 stewart-2022-torchgeo.pdf
+vl-jepa-2026.html
 ```
 
 For standards or papers not stored locally, keep the citation in `../citations.bib`
