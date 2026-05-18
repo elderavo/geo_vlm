@@ -1,7 +1,7 @@
 [project]
 name = "geo-vlm"
 version = "0.1.0"
-description = "Add your description here"
+description = "JEPA-to-GeoSPARQL research pipeline for SpaceNet road extraction."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
