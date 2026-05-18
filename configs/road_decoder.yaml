@@ -1,0 +1,12 @@
+model:
+  decoder_type: lightweight_dense
+  output_target: centerline_mask
+
+training:
+  epochs: 50
+  batch_size: 16
+  learning_rate: 0.0001
+  freeze_encoder: true
+
+evaluation:
+  threshold: 0.5
