@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 import logging
 from pathlib import Path
@@ -33,21 +32,29 @@ def parse_args() -> argparse.Namespace:
 
 
 def _make_optimizer(encoder, predictor, weight_decay: float):
-    decay, no_decay = [], []
-    for model in (encoder, predictor):
-        for name, parameter in model.named_parameters():
-            if not parameter.requires_grad:
-                continue
-            if parameter.ndim == 1 or name.endswith("bias"):
-                no_decay.append(parameter)
-            else:
-                decay.append(parameter)
+    encoder_decay, encoder_no_decay = [], []
+    predictor_decay, predictor_no_decay = [], []
+    for name, parameter in encoder.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        if parameter.ndim == 1 or name.endswith("bias"):
+            encoder_no_decay.append(parameter)
+        else:
+            encoder_decay.append(parameter)
+    for name, parameter in predictor.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        if parameter.ndim == 1 or name.endswith("bias"):
+            predictor_no_decay.append(parameter)
+        else:
+            predictor_decay.append(parameter)
     return torch.optim.AdamW(
         [
-            {"params": decay},
-            {"params": no_decay, "weight_decay": 0.0, "wd_exclude": True},
-        ],
-        weight_decay=weight_decay,
+            {"params": encoder_decay, "weight_decay": weight_decay},
+            {"params": predictor_decay, "weight_decay": weight_decay},
+            {"params": encoder_no_decay, "weight_decay": 0.0, "WD_exclude": True},
+            {"params": predictor_no_decay, "weight_decay": 0.0, "WD_exclude": True},
+        ]
     )
 
 
@@ -58,7 +65,7 @@ def _save_checkpoint(path: Path, *, epoch: int, encoder, target_encoder, predict
             "encoder": encoder.state_dict(),
             "target_encoder": target_encoder.state_dict(),
             "predictor": predictor.state_dict(),
-            "optimizer": optimizer.state_dict(),
+            "opt": optimizer.state_dict(),
         },
         path,
     )
@@ -151,6 +158,9 @@ def train(config: dict, output_dir: Path) -> None:
             context_masks = [mask.to(device) for mask in context_masks]
             target_masks = [mask.to(device) for mask in target_masks]
 
+            lr = lr_schedule.step()
+            wd = wd_schedule.step()
+
             with torch.no_grad():
                 target_latents = target_encoder(images)
                 target_latents = F.layer_norm(target_latents, (target_latents.size(-1),))
@@ -168,8 +178,7 @@ def train(config: dict, output_dir: Path) -> None:
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            lr = lr_schedule.step()
-            wd = wd_schedule.step()
+            optimizer.zero_grad()
 
             progress = global_step / max(1, total_steps - 1)
             momentum = ema_start + progress * (ema_end - ema_start)
@@ -191,6 +200,14 @@ def train(config: dict, output_dir: Path) -> None:
 
         _save_checkpoint(
             output_dir / "latest.pt",
+            epoch=epoch + 1,
+            encoder=encoder,
+            target_encoder=target_encoder,
+            predictor=predictor,
+            optimizer=optimizer,
+        )
+        _save_checkpoint(
+            output_dir / "best.ckpt",
             epoch=epoch + 1,
             encoder=encoder,
             target_encoder=target_encoder,

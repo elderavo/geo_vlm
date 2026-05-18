@@ -14,10 +14,10 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 : "${DATA_ROOT:="${PROJECT_ROOT}/data"}"
 : "${SPACENET3_ROOT:="${DATA_ROOT}/spacenet3"}"
-: "${ARTIFACT_ROOT:="${PROJECT_ROOT}/artifacts"}"
+: "${ARTIFACT_ROOT:="${HOME}/ijepa_logs"}"
 : "${CONFIG_ROOT:="${PROJECT_ROOT}/configs"}"
 
-: "${JEPA_RUN_DIR:="${ARTIFACT_ROOT}/jepa"}"
+: "${JEPA_RUN_DIR:="${ARTIFACT_ROOT}"}"
 : "${DECODER_RUN_DIR:="${ARTIFACT_ROOT}/road_decoder"}"
 : "${VECTOR_RUN_DIR:="${ARTIFACT_ROOT}/vectors"}"
 : "${RDF_RUN_DIR:="${ARTIFACT_ROOT}/rdf"}"

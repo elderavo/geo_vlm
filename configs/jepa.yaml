@@ -1,5 +1,5 @@
 data:
-  root_path: ~/AOI_5_Khartoum
+  root_path: ~/AOI_5_Khartoum/PS-RGB
   image_product: PS-RGB
   crop_size: 224
   crop_scale: [0.3, 1.0]
@@ -35,11 +35,12 @@ optimization:
   weight_decay: 0.04
 
 logging:
-  folder: artifacts/jepa
+  folder: ~/ijepa_logs
   write_tag: geotiff_jepa
 
 launcher:
-  partition: null
+  partition: genai
   nodes: 1
   tasks_per_node: 1
+  num_gpus: 1
   time_minutes: 30

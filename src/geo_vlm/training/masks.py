@@ -53,7 +53,11 @@ class MultiBlockMaskCollator:
         )
         h = int(round(math.sqrt(max_keep * aspect_ratio)))
         w = int(round(math.sqrt(max_keep / aspect_ratio)))
-        return min(h, self.height - 1), min(w, self.width - 1)
+        while h >= self.height:
+            h -= 1
+        while w >= self.width:
+            w -= 1
+        return h, w
 
     def _sample_block_mask(
         self,
@@ -61,19 +65,26 @@ class MultiBlockMaskCollator:
         acceptable_regions: list[torch.Tensor] | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         h, w = block_size
+        tries = 0
+        timeout = original_timeout = 20
         while True:
             top = torch.randint(0, self.height - h, (1,))
             left = torch.randint(0, self.width - w, (1,))
             mask = torch.zeros((self.height, self.width), dtype=torch.int32)
             mask[top : top + h, left : left + w] = 1
             if acceptable_regions is not None:
-                for region in acceptable_regions:
+                region_count = max(int(len(acceptable_regions) - tries), 0)
+                for region in acceptable_regions[:region_count]:
                     mask *= region
             flat_mask = torch.nonzero(mask.flatten()).squeeze()
             if flat_mask.numel() > self.min_keep:
                 complement = torch.ones((self.height, self.width), dtype=torch.int32)
                 complement[top : top + h, left : left + w] = 0
                 return flat_mask, complement
+            timeout -= 1
+            if timeout == 0:
+                tries += 1
+                timeout = original_timeout
 
     def __call__(
         self, batch: list[torch.Tensor]

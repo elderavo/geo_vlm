@@ -82,7 +82,8 @@ Implemented:
 
 - project and stage scaffolding,
 - TorchGeo-based SpaceNet preparation entrypoint,
-- direct `PS-RGB` GeoTIFF JEPA pretraining path,
+- direct `PS-RGB` GeoTIFF vanilla I-JEPA pretraining path,
+- upstream-style I-JEPA ViT encoder, predictor, masking, optimizer, and schedules adapted from the local `~/ijepa` checkout,
 - configurable JEPA input channels for later non-RGB experiments,
 - submitit launcher for Slurm JEPA runs,
 - deterministic GeoSPARQL exporter,
@@ -107,7 +108,7 @@ This is a **geospatial transfer baseline**, not yet a multiband experiment.
 The current `configs/jepa.yaml` expects TIFFs under:
 
 ```text
-~/AOI_5_Khartoum
+~/AOI_5_Khartoum/PS-RGB
 ```
 
 and discovers files matching:
@@ -125,17 +126,64 @@ uv run python -m geo_vlm.training.pretrain_jepa \
   --config configs/jepa.yaml
 ```
 
+This writes `latest.pt`, `best.ckpt`, `config_resolved.yaml`,
+`dataset_manifest.json`, and a JSONL training log. For the current validation
+milestone, treat those artifacts as the baseline evidence that vanilla I-JEPA
+can run stably on Khartoum satellite crops before adding road-specific decoder
+training or geospatial vectorization.
+
 Submit through Slurm with `submitit`:
 
 ```bash
 uv run python -m geo_vlm.training.launch_jepa_submitit \
-  --config configs/jepa.yaml \
-  --folder ~/ijepa_logs \
-  --partition YOUR_PARTITION \
-  --nodes 1 \
-  --tasks-per-node 1 \
-  --time 30
+  --config configs/jepa.yaml
 ```
+
+By default, the launcher targets the `genai` Slurm partition, requests one GPU
+task, writes submitit logs under `~/ijepa_logs/jobs`, and writes training
+artifacts under `~/ijepa_logs/runs/<job_id>`. Do not run GPU training directly
+on the submit node.
+
+Run a longer Khartoum validation without editing the config:
+
+```bash
+uv run python -m geo_vlm.training.launch_jepa_submitit \
+  --config configs/jepa.yaml \
+  --epochs 50 \
+  --time 120 \
+  --num-gpus 4
+```
+
+`--num-gpus` controls the Slurm GPU allocation. The current training loop still
+runs one Python training process, so multi-GPU allocation is useful for
+experimentation and upcoming distributed work but does not by itself enable
+distributed data parallel training.
+
+Generate first-pass mask visualizations:
+
+```bash
+uv run python -m geo_vlm.analysis.launch_mask_visuals_submitit \
+  --config configs/jepa.yaml
+```
+
+Attach mask visualizations to a specific training run:
+
+```bash
+uv run python -m geo_vlm.analysis.launch_mask_visuals_submitit \
+  --config configs/jepa.yaml \
+  --run-id 25369098
+```
+
+These images overlay sampled I-JEPA context and target masks on stretched
+Khartoum RGB crops. They are **not learned attention maps**; they show whether
+the vanilla I-JEPA masking task is hiding and revealing geospatially relevant
+content before we inspect learned embeddings. The launcher imports the image
+visualization code inside the Slurm job, so OpenCV/image-library issues on the
+submit node do not block submission. Outputs default to
+`~/ijepa_logs/mask_visuals/<run_id>` when `--run-id` or `--run-dir` is provided,
+otherwise `~/ijepa_logs/mask_visuals/<visualizer_job_id>`. You can also pass an
+explicit `--output-dir` containing `%j` or `%JOBID`, which will be replaced by
+the Slurm job id inside the compute job.
 
 Roadmap for additional imagery products:
 
