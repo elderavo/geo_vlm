@@ -18,9 +18,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--folder", type=Path, default=None)
     parser.add_argument("--partition", type=str, default=None)
-    parser.add_argument("--nodes", type=int, default=None)
-    parser.add_argument("--tasks-per-node", type=int, default=None)
-    parser.add_argument("--num-gpus", type=int, default=None)
     parser.add_argument("--time", type=int, default=10)
     parser.add_argument("--num-samples", type=int, default=8)
     parser.add_argument("--seed", type=int, default=0)
@@ -70,18 +67,15 @@ def main() -> None:
     folder = (args.folder or (log_root / "mask_visual_jobs")).expanduser()
     launcher_config = config.get("launcher", {})
     partition = args.partition or launcher_config.get("partition") or "genai"
-    nodes = args.nodes or 1
-    tasks_per_node = args.tasks_per_node or 1
-    num_gpus = args.num_gpus or launcher_config.get("num_gpus") or tasks_per_node
 
     executor = submitit.AutoExecutor(folder=str(folder / "job_%j"))
     executor.update_parameters(
         slurm_partition=partition,
         timeout_min=args.time,
-        nodes=nodes,
-        tasks_per_node=tasks_per_node,
+        nodes=1,
+        tasks_per_node=1,
         cpus_per_task=4,
-        gpus_per_node=num_gpus,
+        gpus_per_node=1,
     )
     job = executor.submit(
         MaskVisualizer(

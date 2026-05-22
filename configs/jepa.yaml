@@ -1,5 +1,5 @@
 data:
-  root_path: ~/AOI_5_Khartoum/PS-RGB
+  root_path: ~/data
   image_product: PS-RGB
   crop_size: 224
   crop_scale: [0.3, 1.0]
@@ -40,7 +40,5 @@ logging:
 
 launcher:
   partition: genai
-  nodes: 1
-  tasks_per_node: 1
-  num_gpus: 1
+  cpus_per_task: 10
   time_minutes: 30

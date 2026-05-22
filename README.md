@@ -191,6 +191,27 @@ Roadmap for additional imagery products:
 2. explicit support for PAN / multispectral input channels,
 3. controlled comparisons so additional bands earn their complexity.
 
+Run the first all-modality Copernicus-Pretrain smoke config through Slurm:
+
+```bash
+uv run python -m geo_vlm.training.launch_jepa_submitit \
+  --config configs/jepa_copernicus_100.yaml
+```
+
+This streams TorchGeo's `CopernicusPretrain` `100_example` WebDataset shard and
+stacks S1, S2, S3, S5P pollutant rasters, and DEM into fixed JEPA inputs with
+41 data channels plus 8 modality-presence channels.
+
+Run the first single-node four-GPU Copernicus DDP config through Slurm:
+
+```bash
+uv run python -m geo_vlm.training.launch_jepa_submitit \
+  --config configs/jepa_copernicus_ddp.yaml
+```
+
+This launches one Slurm task per GPU on one node, uses PyTorch DDP with NCCL,
+and writes logs/checkpoints only from rank 0.
+
 ## Environment setup
 
 This project uses `uv`.
